@@ -48,24 +48,24 @@ jobs:
         run: composer install --no-progress --prefer-dist --no-interaction
         working-directory: code
 
-      #- name: Cleanup remote src directory via SFTP
-      #  if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-      #  run: | 
-      #     sudo apt-get update
-      #     sudo apt-get install -y lftp
-      #     lftp -u "${{ secrets.SFTP_USERNAME }},${{ secrets.SFTP_PASSWORD }}" sftp://${{ secrets.SFTP_HOST }} <<'EOF'
-      #     set sftp:auto-confirm yes
-      #     set cmd:fail-exit yes
-      #     cd /home/mrktmbc/rktmb-hr-perf-backend/src
-      #     echo 'Listing before deletion:'
-      #     cls -a1
-      #     echo 'Deleting...'
-      #     glob -a rm -r *
-      #     glob -a rm -r .[^.]*
-      #     echo 'Listing after deletion:'
-      #     cls -a1
-      #     bye
-      #     EOF
+      - name: Cleanup remote src directory via SFTP
+        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+        run: | 
+           sudo apt-get update
+           sudo apt-get install -y lftp
+           lftp -u "${{ secrets.SFTP_USERNAME }},${{ secrets.SFTP_PASSWORD }}" sftp://${{ secrets.SFTP_HOST }} <<'EOF'
+           set sftp:auto-confirm yes
+           set cmd:fail-exit yes
+           cd /home/mrktmbc/rktmb-hr-perf-backend/src
+           echo 'Listing before deletion:'
+           cls -a1
+           echo 'Deleting...'
+           glob -a rm -r *
+           glob -a rm -r .[^.]*
+           echo 'Listing after deletion:'
+           cls -a1
+           bye
+           EOF
 
       - name: Deploy .env file via SFTP
         if: github.ref == 'refs/heads/main' && github.event_name == 'push'
