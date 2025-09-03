@@ -60,7 +60,7 @@ jobs:
            echo 'Listing before deletion:'
            cls -a1
            echo 'Deleting...'
-           glob -a rm -rf * .[!.]* ..?*
+           set cmd:fail-exit no; glob -a rm -rf * .[!.]* ..?* ; set cmd:fail-exit yes
            echo 'Listing after deletion:'
            cls -a1
            bye
