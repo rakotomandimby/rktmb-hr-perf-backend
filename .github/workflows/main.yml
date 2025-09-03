@@ -22,6 +22,11 @@ jobs:
       - name: Allow Symfony contrib recipes
         run: composer config --no-interaction extra.symfony.allow-contrib true
         working-directory: code
+      
+      - name: Create .env file
+        run: |
+            printf "DATABASE_URL=%s\nAPP_ENV=%s\nAPP_SECRET=%s\n" "${{ secrets.DATABASE_URL }}" "${{ secrets.APP_ENV }}" "${{ secrets.APP_SECRET }}" > .env
+        working-directory: code
 
       - name: Require Apache pack (adds public/.htaccess)
         run: composer require symfony/apache-pack --no-interaction --no-progress
@@ -61,11 +66,6 @@ jobs:
            cls -a1
            bye
            EOF
-
-      - name: Create .env file
-        run: |
-            printf "DATABASE_URL=%s\nAPP_ENV=%s\nAPP_SECRET=%s\n" "${{ secrets.DATABASE_URL }}" "${{ secrets.APP_ENV }}" "${{ secrets.APP_SECRET }}" > .env
-        working-directory: code
 
       - name: Deploy .env file via SFTP
         if: github.ref == 'refs/heads/main' && github.event_name == 'push'
