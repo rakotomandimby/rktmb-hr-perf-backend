@@ -1,0 +1,93 @@
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          tools: composer
+          coverage: none
+          extensions: mbstring, intl, pdo_mysql
+
+      - name: Allow Symfony contrib recipes
+        run: composer config --no-interaction extra.symfony.allow-contrib true
+        working-directory: code
+
+      - name: Require Apache pack (adds public/.htaccess)
+        run: composer require symfony/apache-pack --no-interaction --no-progress
+        working-directory: code
+
+      - name: Determine composer cache directory
+        id: composer-cache
+        run: echo "dir=$(composer config cache-files-dir)" >> $GITHUB_OUTPUT
+        working-directory: code
+
+      - name: Cache composer
+        uses: actions/cache@v4
+        with:
+          path: ${{ steps.composer-cache.outputs.dir }}
+          key: ${{ runner.os }}-composer-${{ hashFiles('code/composer.lock') }}
+          restore-keys: ${{ runner.os }}-composer-
+
+      - name: Install dependencies
+        run: composer install --no-progress --prefer-dist --no-interaction
+        working-directory: code
+
+      #- name: Cleanup remote src directory via SFTP
+      #  if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+      #  run: | 
+      #     sudo apt-get update
+      #     sudo apt-get install -y lftp
+      #     lftp -u "${{ secrets.SFTP_USERNAME }},${{ secrets.SFTP_PASSWORD }}" sftp://${{ secrets.SFTP_HOST }} <<'EOF'
+      #     set sftp:auto-confirm yes
+      #     set cmd:fail-exit yes
+      #     cd /home/mrktmbc/rktmb-hr-perf-backend/src
+      #     echo 'Listing before deletion:'
+      #     cls -a1
+      #     echo 'Deleting...'
+      #     glob -a rm -r *
+      #     glob -a rm -r .[^.]*
+      #     echo 'Listing after deletion:'
+      #     cls -a1
+      #     bye
+      #     EOF
+
+      - name: Create .env file
+        run: |
+            printf "DATABASE_URL=%s\nAPP_ENV=%s\nAPP_SECRET=%s\n" "${{ secrets.DATABASE_URL }}" "${{ secrets.APP_ENV }}" "${{ secrets.APP_SECRET }}" > .env
+        working-directory: code
+
+      - name: Deploy .env file via SFTP
+        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+        uses: wlixcc/SFTP-Deploy-Action@v1.2.4
+        with:
+          server: ${{ secrets.SFTP_HOST }}
+          username: ${{ secrets.SFTP_USERNAME }}
+          password: ${{ secrets.SFTP_PASSWORD }}
+          port: 22
+          local_path: code/.env
+          remote_path: /home/mrktmbc/rktmb-hr-perf-backend/
+          delete_remote_files: false
+
+      - name: Deploy the rest of the code via SFTP
+        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+        uses: wlixcc/SFTP-Deploy-Action@v1.2.4
+        with:
+          server: ${{ secrets.SFTP_HOST }}
+          username: ${{ secrets.SFTP_USERNAME }}
+          password: ${{ secrets.SFTP_PASSWORD }}
+          port: 22
+          local_path: code/*
+          remote_path: /home/mrktmbc/rktmb-hr-perf-backend/
+          delete_remote_files: false
+
