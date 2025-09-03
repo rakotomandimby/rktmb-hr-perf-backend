@@ -60,8 +60,7 @@ jobs:
            echo 'Listing before deletion:'
            cls -a1
            echo 'Deleting...'
-           glob -a rm -r *
-           glob -a rm -r .[^.]*
+           glob -a rm -rf * .[!.]* ..?*
            echo 'Listing after deletion:'
            cls -a1
            bye
